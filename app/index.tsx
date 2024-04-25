@@ -5,6 +5,8 @@ import size from "@/constants/size";
 import { StatusBar } from "expo-status-bar";
 import { TouchableOpacity } from "react-native";
 import { color } from "@rneui/base";
+import * as ImagePicker from "expo-image-picker";
+import { Image } from "react-native";
 
 const index = () => {
   const [selectedFruit, setSelectedFruit] = useState("Apple");
@@ -14,6 +16,43 @@ const index = () => {
     { name: "Grapes", emoji: "🍇" },
     { name: "Orange", emoji: "🍊" },
   ];
+  const [image, setImage] = useState("");
+
+  const openCamera = async () => {
+    // Ask the user for the permission to access the camera
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      alert("You've refused to allow this appp to access your camera!");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync();
+
+    // Explore the result
+    console.log(result);
+
+    if (!result.canceled) {
+      setImage(result.uri);
+      console.log(result.uri);
+    }
+  };
+
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    console.log(result);
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -29,7 +68,7 @@ const index = () => {
             fontWeight: "200",
           }}
         >
-          PICK A FRUIT
+          Pick a Fruit
         </Text>
         <View style={styles.fruitToggleContainer}>
           {fruits.map((fruit, index) => (
@@ -58,21 +97,52 @@ const index = () => {
           ))}
         </View>
       </View>
-
-      <View style={{ rowGap: 24, paddingBottom: 24 }}>
-        <TouchableOpacity style={[styles.mainButton]}>
-          <Text style={[styles.headerText, { color: "white" }]}>
-            Take a Picture
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.mainButton, { backgroundColor: app_colors.dark_blue }]}
-        >
-          <Text style={[styles.headerText, { color: "white" }]}>
-            Select from Gallery
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {image && (
+        <View style={{ rowGap: 24, paddingBottom: 24 }}>
+          <Image source={{ uri: image }} style={styles.image} />
+          <TouchableOpacity
+            onPress={() => {}}
+            style={[styles.mainButton, { backgroundColor: app_colors.accent }]}
+          >
+            <Text style={[styles.headerText, { color: "white" }]}>
+              Predict Ripeness
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              setImage("");
+            }}
+            style={[
+              styles.mainButton,
+              { backgroundColor: app_colors.dark_blue },
+            ]}
+          >
+            <Text style={[styles.headerText, { color: "white" }]}>
+              Select a different picture
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {image === "" && (
+        <View style={{ rowGap: 24, paddingBottom: 24 }}>
+          <TouchableOpacity onPress={openCamera} style={[styles.mainButton]}>
+            <Text style={[styles.headerText, { color: "white" }]}>
+              Take a Picture
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={pickImage}
+            style={[
+              styles.mainButton,
+              { backgroundColor: app_colors.dark_blue },
+            ]}
+          >
+            <Text style={[styles.headerText, { color: "white" }]}>
+              Select from Gallery
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
@@ -98,9 +168,11 @@ const styles = StyleSheet.create({
   },
   fruitToggleContainer: {
     alignItems: "center",
-    justifyContent: "center",
     flexDirection: "row",
-    columnGap: 6,
+    justifyContent: "center",
+    columnGap: 12,
+    rowGap: 12,
+    flexWrap: "wrap",
   },
   fruitItem: {
     flexDirection: "column",
@@ -126,6 +198,13 @@ const styles = StyleSheet.create({
     backgroundColor: app_colors.accent,
     alignItems: "center",
     marginHorizontal: 16,
+    borderRadius: 24,
+    elevation: 2,
+  },
+  image: {
+    alignSelf: "center",
+    width: 300,
+    height: 250,
     borderRadius: 24,
   },
 });
