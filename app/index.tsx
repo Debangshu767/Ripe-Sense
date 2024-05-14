@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ImageBackground } from "react-native";
+import { View, Text, StyleSheet, ImageBackground, Alert } from "react-native";
 import React, { useState } from "react";
 import app_colors from "@/constants/app_colors";
 import size from "@/constants/size";
@@ -7,17 +7,51 @@ import { TouchableOpacity } from "react-native";
 import { color } from "@rneui/base";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "react-native";
+import axios from "axios";
 
 const index = () => {
   const [selectedFruit, setSelectedFruit] = useState("Apple");
+  const [prediction, setPrediction] = useState(null);
   const fruits = [
     { name: "Apple", emoji: "🍎" },
     { name: "Banana", emoji: "🍌" },
     { name: "Grapes", emoji: "🍇" },
     { name: "Orange", emoji: "🍊" },
   ];
-  const [image, setImage] = useState("");
+  const [image, setImage] = useState(null);
 
+  const predictImage = async (imgUri) => {
+    console.log("image : ", imgUri);
+    const photo = imgUri;
+    const formData = new FormData();
+    try {
+      const imageData = new FormData();
+
+      const result = await fetch(photo?.uri);
+      const data = await result.blob();
+      console.log(data);
+      imageData.append("file", {
+        name: data._data.name,
+        uri: photo?.uri,
+        type: data._data.type,
+        fileName: data._data.name,
+      });
+
+      const res = await axios.post("http://localhost:9000/predict", imageData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      if (res.status == 200) {
+        console.log("prediction : ", res.data);
+        setPrediction(res.data);
+      }
+    } catch (error) {
+      Alert.alert("Error in fetching data", error?.toString());
+      console.log(error);
+    } finally {
+    }
+  };
   const openCamera = async () => {
     // Ask the user for the permission to access the camera
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
@@ -29,12 +63,8 @@ const index = () => {
 
     const result = await ImagePicker.launchCameraAsync();
 
-    // Explore the result
-    console.log(result);
-
     if (!result.canceled) {
-      setImage(result.uri);
-      console.log(result.uri);
+      setImage(result.assets[0]);
     }
   };
 
@@ -47,10 +77,8 @@ const index = () => {
       quality: 1,
     });
 
-    console.log(result);
-
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      setImage(result.assets[0]);
     }
   };
   return (
@@ -97,11 +125,13 @@ const index = () => {
           ))}
         </View>
       </View>
-      {image && (
+      {image && prediction == null && (
         <View style={{ rowGap: 24, paddingBottom: 24 }}>
-          <Image source={{ uri: image }} style={styles.image} />
+          <Image source={{ uri: image.uri }} style={styles.image} />
           <TouchableOpacity
-            onPress={() => {}}
+            onPress={() => {
+              predictImage(image);
+            }}
             style={[styles.mainButton, { backgroundColor: app_colors.accent }]}
           >
             <Text style={[styles.headerText, { color: "white" }]}>
@@ -110,7 +140,7 @@ const index = () => {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
-              setImage("");
+              setImage(null);
             }}
             style={[
               styles.mainButton,
@@ -123,7 +153,7 @@ const index = () => {
           </TouchableOpacity>
         </View>
       )}
-      {image === "" && (
+      {image === null && prediction === null && (
         <View style={{ rowGap: 24, paddingBottom: 24 }}>
           <TouchableOpacity onPress={openCamera} style={[styles.mainButton]}>
             <Text style={[styles.headerText, { color: "white" }]}>
@@ -139,6 +169,53 @@ const index = () => {
           >
             <Text style={[styles.headerText, { color: "white" }]}>
               Select from Gallery
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {image && prediction && (
+        <View style={{ rowGap: 24, paddingBottom: 24 }}>
+          <Image source={{ uri: image.uri }} style={styles.image} />
+          <View
+            style={{
+              flexDirection: "row",
+              columnGap: 4,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text
+              style={[{ fontSize: size.md, color: app_colors.neutral_dark }]}
+            >
+              {`The ${selectedFruit} is `}
+            </Text>
+            <Text
+              style={{
+                fontSize: size.xl,
+                fontWeight: "800",
+                color:
+                  prediction.predicted_class === "unripe"
+                    ? app_colors.primary
+                    : prediction.predicted_class === "ripe"
+                    ? "orange"
+                    : "red",
+              }}
+            >
+              {prediction.predicted_class.toUpperCase()}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => {
+              setPrediction(null);
+              setImage(null);
+            }}
+            style={[
+              styles.mainButton,
+              { backgroundColor: app_colors.dark_blue },
+            ]}
+          >
+            <Text style={[styles.headerText, { color: "white" }]}>
+              Try Again
             </Text>
           </TouchableOpacity>
         </View>
