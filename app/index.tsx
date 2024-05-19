@@ -41,7 +41,7 @@ const index = () => {
       });
 
       const res = await axios.post(
-        "https://d37c-34-168-37-217.ngrok-free.app/predict",
+        "https://c9f2-34-68-115-166.ngrok-free.app/predict",
         // http://localhost:9000
         imageData,
         {
