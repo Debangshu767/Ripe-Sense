@@ -8,13 +8,15 @@ import { color } from "@rneui/base";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "react-native";
 import axios from "axios";
+import LottieView from "lottie-react-native";
 
 const index = () => {
-  const [selectedFruit, setSelectedFruit] = useState("Apple");
+  const [selectedFruit, setSelectedFruit] = useState("Banana");
   const [prediction, setPrediction] = useState(null);
+  const [loading, setLoading] = useState(false);
   const fruits = [
-    { name: "Apple", emoji: "🍎" },
     { name: "Banana", emoji: "🍌" },
+    { name: "Apple", emoji: "🍎" },
     { name: "Grapes", emoji: "🍇" },
     { name: "Orange", emoji: "🍊" },
   ];
@@ -25,6 +27,7 @@ const index = () => {
     const photo = imgUri;
     const formData = new FormData();
     try {
+      setLoading(true);
       const imageData = new FormData();
 
       const result = await fetch(photo?.uri);
@@ -37,11 +40,16 @@ const index = () => {
         fileName: data._data.name,
       });
 
-      const res = await axios.post("http://localhost:9000/predict", imageData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const res = await axios.post(
+        "https://d37c-34-168-37-217.ngrok-free.app/predict",
+        // http://localhost:9000
+        imageData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
       if (res.status == 200) {
         console.log("prediction : ", res.data);
         setPrediction(res.data);
@@ -50,6 +58,7 @@ const index = () => {
       Alert.alert("Error in fetching data", error?.toString());
       console.log(error);
     } finally {
+      setLoading(false);
     }
   };
   const openCamera = async () => {
@@ -88,7 +97,7 @@ const index = () => {
       </View>
 
       <View style={{ alignItems: "center", rowGap: 16, flexGrow: 1 }}>
-        <Text
+        {/* <Text
           style={{
             textAlign: "center",
             fontSize: size.lg,
@@ -97,7 +106,7 @@ const index = () => {
           }}
         >
           Pick a Fruit
-        </Text>
+        </Text> */}
         <View style={styles.fruitToggleContainer}>
           {fruits.map((fruit, index) => (
             <TouchableOpacity
@@ -124,10 +133,61 @@ const index = () => {
             </TouchableOpacity>
           ))}
         </View>
+        {selectedFruit != "Banana" && (
+          <View>
+            <LottieView
+              source={require("../assets/animations/Working.json")}
+              style={{ height: 400, width: 400 }}
+              autoPlay
+              loop
+            />
+            <Text
+              style={[
+                styles.headerText,
+                {
+                  marginTop: -80,
+                  color: app_colors.dark_blue,
+                  fontWeight: "300",
+                  fontSize: size.md,
+                  paddingHorizontal: 16,
+                  alignItems: "center",
+                  textAlign: "center",
+                },
+              ]}
+            >
+              We are working very hard to bring predictions for other fruits.
+            </Text>
+            <Text
+              style={[
+                styles.headerText,
+                {
+                  color: app_colors.dark_blue,
+                  fontWeight: "800",
+                  fontSize: size.lg,
+                  paddingHorizontal: 16,
+                  alignItems: "center",
+                  textAlign: "center",
+                },
+              ]}
+            >
+              STAY TUNED!
+            </Text>
+          </View>
+        )}
       </View>
-      {image && prediction == null && (
+
+      {image && prediction == null && selectedFruit === "Banana" && (
         <View style={{ rowGap: 24, paddingBottom: 24 }}>
-          <Image source={{ uri: image.uri }} style={styles.image} />
+          {loading ? (
+            <LottieView
+              source={require("../assets/animations/Loading.json")}
+              style={{ height: 250, width: "100%" }}
+              autoPlay
+              loop
+            />
+          ) : (
+            <Image source={{ uri: image.uri }} style={styles.image} />
+          )}
           <TouchableOpacity
             onPress={() => {
               predictImage(image);
@@ -153,7 +213,7 @@ const index = () => {
           </TouchableOpacity>
         </View>
       )}
-      {image === null && prediction === null && (
+      {image === null && prediction === null && selectedFruit === "Banana" && (
         <View style={{ rowGap: 24, paddingBottom: 24 }}>
           <TouchableOpacity onPress={openCamera} style={[styles.mainButton]}>
             <Text style={[styles.headerText, { color: "white" }]}>
@@ -173,7 +233,7 @@ const index = () => {
           </TouchableOpacity>
         </View>
       )}
-      {image && prediction && (
+      {image && prediction && selectedFruit === "Banana" && (
         <View style={{ rowGap: 24, paddingBottom: 24 }}>
           <Image source={{ uri: image.uri }} style={styles.image} />
           <View
